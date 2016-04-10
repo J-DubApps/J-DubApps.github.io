@@ -1,87 +1,52 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
-	<head>
-		<title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
-		
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<meta name="generator" content="Jekyll" />
-		<meta name="author" content="{{ site.author.name }}" />
-		<meta name="description" content="{{ site.description }}" />
+<head>
+    <meta charset="utf-8">
 
-		<link rel="alternate" type="application/atom+xml" title="Recent Entries" href="{{ site.feed }}" />
-		
-		{% for css in site.css %}
-			<link rel="stylesheet" href="{{ css }}" type="text/css" />
-		{% endfor %}
-		
-		{% for css in page.css %}
-			<link rel="stylesheet" href="{{ css }}" type="text/css" />
-		{% endfor %}
-	</head>
-	<body>
-		<div id="header">
-			<h1>
-				<a href="/">{{ site.title }}</a>
-			</h1>
-			
-			<div>
-				<span>/*</span> {{ site.comment }} <span>*/</span>
-			</div>
-			
-			<a href="{{ site.feed }}" id="subscribe">Subscribe</a>
-			
-			{% include nav.html %}
-		</div>
-		
-		<div id="content">
-			<div id="alpha">
-				{{ content }}
-			</div>
-			
-			<div id="beta">
-				{% if page.sidebar != false %}
-					{% include sidebar.html %}
-				{% endif %}
-			</div>
-			
-			<div class="clear"></div>
-		</div>
-		
-		<div id="footer">
-			<div id="about">
-				{% for phrase in site.footer %}
-					<div>
-						<h6>{{ phrase.verb }}</h6>
-						{{ phrase.action }}
-					</div>
-				{% endfor %}
-			</div>
-			<div id="copyright">
-				{% for line in site.copyright %}
-					<div>{{ line }}</div>
-				{% endfor %}
-			</div>
-		</div>
-		
-		{% for js in site.js %}
-			<script src="{{ js }}" type="text/javascript" charset="utf-8"></script>
-		{% endfor %}
-		
-		{% for js in page.js %}
-			<script src="{{ js }}" type="text/javascript" charset="utf-8"></script>
-		{% endfor %}
-		
-		<script type="text/javascript">
-			(function(){
-				var links = document.getElementsByTagName('a');
-				var query = '?';
-				for (var i = 0; i < links.length; i++){
-					if (links[i].href.indexOf('#disqus_thread') >= 0){
-						query += 'url' + i + '=' + encodeURIComponent(links[i].href) + '&';
-					}
-				}
-				document.write('<script charset="utf-8" type="text/javascript" src="http://disqus.com/forums/{{ site.disqus.id }}/get_num_replies.js' + query + '"></' + 'script>');
-			})();
-		</script>
-	</body>
+    <title>AppDen</title>
+    <meta name="description" content="Cocoa and JavaScript developer.">
+    <meta name="author" content="Scott Kyle">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <noscript>
+        <link rel="stylesheet" href="css/style-noscript.css">
+    </noscript>
+</head>
+<body class="loading">
+    <div id="wrapper">
+        <div id="main">
+            <header id="header">
+                <h1>Scott Kyle</h1>
+                <p>Creator of <a href="http://currentformac.com">Current for Mac</a></p>
+                <nav>
+                    <ul>
+                        <li><a href="https://twitter.com/appden" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
+                        <li><a href="https://github.com/appden" class="icon fa-github"><span class="label">Github</span></a></li>
+                        <li><a href="mailto:scott@appden.com" class="icon fa-envelope-o"><span class="label">Email</span></a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <footer id="footer">
+                <span class="copyright">
+                    &copy; 2014 AppDen LLC. &nbsp; Design: <a href="http://html5up.net">HTML5 UP</a>.
+                </span>
+            </footer>
+        </div>
+    </div>
+
+    <script src="js/init.js" defer></script>
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-4604812-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+</body>
 </html>
