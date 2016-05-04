@@ -4,7 +4,7 @@ License
 
 Everything here is MIT Licensed. Attribution is always appreciated.  
 
-Julianwest.me landing-page design is sourced from Scott Kyle & Appden (https://github.com/appden/appden.github.com).
+Julianwest.me landing-page design is sourced from HTML5 UP (http://html5up.net)  Thanks to Scott Kyle & Appden for the tip (https://github.com/appden/appden.github.com).
 
 Over time all Julianwest.me static content will be migrated to Jekyll.  Read more about Jekyll here: https://jekyllrb.com
 
