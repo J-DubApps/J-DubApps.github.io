@@ -6,7 +6,7 @@ Everything here is MIT Licensed. Attribution is always appreciated.
 
 Julianwest.me landing-page design is sourced from Scott Kyle & Appden (https://github.com/appden/appden.github.com).
 
-Over time all Julianwest.me static content will be migrated to Jekyll.  Read more about Jeckyll here: https://jekyllrb.com
+Over time all Julianwest.me static content will be migrated to Jekyll.  Read more about Jekyll here: https://jekyllrb.com
 
 Jekyll is an elegant "CMS" that focuses on text and static pages rather than using a database and dynamic pages.  It's maintained by the GitHub team and well-worth a look.
 
