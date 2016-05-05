@@ -91,7 +91,7 @@
 		background-image: url("images/overlay.png"), linear-gradient(60deg, rgba(255, 246, 151, 0.5) 5%, rgba(255, 148, 140, 0.35)), url("../../images/bg.jpg");
 		background-repeat: repeat,			no-repeat,			no-repeat;
 		background-position: top left,		center center,		bottom center;
-		background-size: 100px 100px, cover,				cover;
+		background-size: cover;
 		background-attachment: fixed,			fixed,				fixed;
 	}
 
@@ -112,7 +112,7 @@
 			background-image: url("images/overlay.png"), linear-gradient(60deg, rgba(255, 246, 151, 0.5) 5%, rgba(255, 148, 140, 0.35));
 			background-repeat: repeat,			no-repeat;
 			background-position: top left,		center center;
-			background-size: 100px 100px, cover;
+			background-size: cover;
 			-moz-transition: opacity 1.75s ease-out;
 			-webkit-transition: opacity 1.75s ease-out;
 			-ms-transition: opacity 1.75s ease-out;
