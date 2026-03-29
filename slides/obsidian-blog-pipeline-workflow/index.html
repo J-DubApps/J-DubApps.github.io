@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Draft Pipeline — Julian West</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f0f;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 48px 24px 12px;
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #3B82F6, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p {
+    color: #888;
+    font-size: 15px;
+    margin-top: 8px;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Diagram container */
+  .diagram-wrap {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 24px 48px;
+    position: relative;
+  }
+
+  /* SVG canvas for lines */
+  svg.connections {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  svg.connections line, svg.connections path {
+    stroke-width: 2;
+    fill: none;
+  }
+  svg.connections .arrow { fill: #555; }
+
+  /* Stages */
+  .stage {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 12px;
+  }
+  .stage-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #555;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+  .stage-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  /* Nodes */
+  .node {
+    background: #161616;
+    border: 2px solid #333;
+    border-radius: 14px;
+    padding: 20px 24px;
+    min-width: 180px;
+    max-width: 240px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.3s;
+    position: relative;
+  }
+  .node:hover {
+    transform: scale(1.05);
+  }
+  .node.dimmed {
+    opacity: 0.18;
+  }
+  .node.highlighted {
+    transform: scale(1.05);
+  }
+  .node .icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .node .label {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .node .subtitle {
+    font-size: 11.5px;
+    color: #aaa;
+    line-height: 1.4;
+  }
+
+  /* Node type colors */
+  .node[data-type="trigger"]    { background: #1e3a5f; border-color: #3B82F6; }
+  .node[data-type="trigger"]:hover,
+  .node[data-type="trigger"].highlighted { box-shadow: 0 0 24px rgba(59,130,246,0.35); }
+
+  .node[data-type="process"]    { background: #1a3d2e; border-color: #10B981; }
+  .node[data-type="process"]:hover,
+  .node[data-type="process"].highlighted { box-shadow: 0 0 24px rgba(16,185,129,0.35); }
+
+  .node[data-type="tool"]       { background: #3d2e1a; border-color: #F59E0B; }
+  .node[data-type="tool"]:hover,
+  .node[data-type="tool"].highlighted { box-shadow: 0 0 24px rgba(245,158,11,0.35); }
+
+  .node[data-type="decision"]   { background: #2e1a3d; border-color: #A855F7; }
+  .node[data-type="decision"]:hover,
+  .node[data-type="decision"].highlighted { box-shadow: 0 0 24px rgba(168,85,247,0.35); }
+
+  .node[data-type="output"]     { background: #3d1a1a; border-color: #EF4444; }
+  .node[data-type="output"]:hover,
+  .node[data-type="output"].highlighted { box-shadow: 0 0 24px rgba(239,68,68,0.35); }
+
+  .node[data-type="datastore"]  { background: #1a1a2e; border-color: #6366F1; }
+  .node[data-type="datastore"]:hover,
+  .node[data-type="datastore"].highlighted { box-shadow: 0 0 24px rgba(99,102,241,0.35); }
+
+  /* Connector label badges */
+  .conn-label {
+    position: absolute;
+    z-index: 3;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #222;
+    color: #bbb;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Step number badge */
+  .step-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #333;
+    color: #999;
+    font-size: 10px;
+    font-weight: 700;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #444;
+  }
+
+  /* Loop indicator */
+  .loop-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #A855F7;
+    background: #1a1028;
+    border: 1px solid #A855F7;
+    padding: 1px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  /* Arrow between stages */
+  .stage-arrow {
+    text-align: center;
+    font-size: 20px;
+    color: #333;
+    margin: 4px 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 24px;
+    margin: 0 auto;
+    max-width: 900px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #888;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid;
+  }
+  .legend-dot.trigger   { border-color: #3B82F6; background: #1e3a5f; }
+  .legend-dot.process   { border-color: #10B981; background: #1a3d2e; }
+  .legend-dot.tool      { border-color: #F59E0B; background: #3d2e1a; }
+  .legend-dot.decision  { border-color: #A855F7; background: #2e1a3d; }
+  .legend-dot.output    { border-color: #EF4444; background: #3d1a1a; }
+  .legend-dot.datastore { border-color: #6366F1; background: #1a1a2e; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 14px 18px;
+    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ccc;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip strong { color: #fff; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    color: #444;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Blog Draft Pipeline</h1>
+  <p>Julian's 10-step, gate-controlled publishing workflow — from raw #blog-idea in Obsidian to live post on julianwest.me/blog</p>
+</div>
+
+<div class="diagram-wrap" id="diagram">
+
+  <!-- ═══════ STAGE 1: INTAKE ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Stage 1 — Intake</div>
+    <div class="stage-row">
+      <div class="node" data-type="trigger" data-id="inbox"
+           data-tip="A new note tagged <strong>#blog-idea</strong> lands in the <strong>/1-inbox/</strong> folder inside the Obsidian vault. This is the entry point for all blog content.">
+        <span class="step-badge">1</span>
+        <span class="icon">⚡</span>
+        <div class="label">#blog-idea in Inbox</div>
+        <div class="subtitle">New note tagged in /1-inbox/</div>
+      </div>
+      <div class="node" data-type="process" data-id="tag-move"
+           data-tip="Claude adds <strong>#blog-draft</strong> tag directly after #blog-idea on the same line, then moves the file from /1-inbox/ to /Blog-Draft-Pipeline/1_Raw/.">
+        <span class="step-badge">1</span>
+        <span class="icon">🏷️</span>
+        <div class="label">Tag & Move to 1_Raw</div>
+        <div class="subtitle">Add #blog-draft, move file</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-arrow">▼</div>
+
+  <!-- ═══════ STAGE 2: RAW CURATION + ITERATION ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Stage 2 — Raw Curation & Content Iteration</div>
+    <div class="stage-row">
+      <div class="node" data-type="datastore" data-id="raw-gate"
+           data-tip="The <strong>1-raw-blog-post-gate.md</strong> file is a Markdown table that tracks each post. Columns: <strong>raw-post-file</strong>, <strong>claude-iterate-draft</strong> (Y/N), <strong>proceed-to-review</strong> (Y/N). Claude registers new files here and moves them to 2_Review.">
+        <span class="step-badge">2</span>
+        <span class="icon">📋</span>
+        <div class="label">1_Raw Gate Table</div>
+        <div class="subtitle">Register files, set flags to N</div>
+      </div>
+      <div class="node" data-type="decision" data-id="julian-iterate"
+           data-tip="Julian reviews the 1_Raw gate table and sets <strong>claude-iterate-draft = Y</strong> for any post that needs a content iteration pass. This is the manual approval gate.">
+        <span class="step-badge">3–4</span>
+        <span class="icon">🔀</span>
+        <div class="label">Julian Reviews Gate</div>
+        <div class="subtitle">Set iterate = Y to trigger draft</div>
+      </div>
+      <div class="node" data-type="tool" data-id="blog-writer"
+           data-tip="When iterate = Y, Claude invokes the <strong>blog-post-writer</strong> Skill. This loads Julian's writing style guide and the Story Circle narrative framework, then performs a full content iteration pass on the file in 2_Review/. After completion, the flag resets to N.">
+        <span class="step-badge">3</span>
+        <span class="icon">✍️</span>
+        <div class="label">Blog Post Writer Skill</div>
+        <div class="subtitle">Style guide + Story Circle iteration</div>
+        <span class="loop-badge">↻ repeatable loop</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-arrow">▼</div>
+
+  <!-- ═══════ STAGE 3: REVIEW ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Stage 3 — Review</div>
+    <div class="stage-row">
+      <div class="node" data-type="datastore" data-id="review-gate"
+           data-tip="The <strong>1-review-blog-post-gate.md</strong> in /2_Review/ tracks posts awaiting advancement. Columns: <strong>review-post-file</strong>, <strong>proceed-to-draft</strong> (Y/N). Claude registers any untracked files found in the folder.">
+        <span class="step-badge">5</span>
+        <span class="icon">📋</span>
+        <div class="label">2_Review Gate Table</div>
+        <div class="subtitle">Register files, proceed = N</div>
+      </div>
+      <div class="node" data-type="decision" data-id="julian-review"
+           data-tip="Julian reads the iterated drafts in /2_Review/, then sets <strong>proceed-to-draft = Y</strong> in the gate table for posts ready to advance to the Draft stage.">
+        <span class="step-badge">5</span>
+        <span class="icon">🔀</span>
+        <div class="label">Julian Approves Review</div>
+        <div class="subtitle">Set proceed-to-draft = Y</div>
+      </div>
+      <div class="node" data-type="process" data-id="move-draft"
+           data-tip="Claude checks for entries where <strong>proceed-to-draft = Y</strong>, moves each approved file from /2_Review/ to /3_Draft/, and removes the processed entry from the gate table.">
+        <span class="step-badge">6</span>
+        <span class="icon">📂</span>
+        <div class="label">Move to 3_Draft</div>
+        <div class="subtitle">Move approved files, clean gate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-arrow">▼</div>
+
+  <!-- ═══════ STAGE 4: DRAFT ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Stage 4 — Draft & Final Edit</div>
+    <div class="stage-row">
+      <div class="node" data-type="datastore" data-id="draft-gate"
+           data-tip="The <strong>1-draft-blog-post-gate.md</strong> in /3_Draft/ tracks posts awaiting Julian's final editing pass. Columns: <strong>draft-post-file</strong>, <strong>proceed-to-publish</strong> (Y/N).">
+        <span class="step-badge">7</span>
+        <span class="icon">📋</span>
+        <div class="label">3_Draft Gate Table</div>
+        <div class="subtitle">Register files, publish = N</div>
+      </div>
+      <div class="node" data-type="decision" data-id="julian-draft"
+           data-tip="Julian performs his final manual editing pass on the drafts in /3_Draft/, then sets <strong>proceed-to-publish = Y</strong> in the gate table when satisfied.">
+        <span class="step-badge">7</span>
+        <span class="icon">🔀</span>
+        <div class="label">Julian Final Edit</div>
+        <div class="subtitle">Set proceed-to-publish = Y</div>
+      </div>
+      <div class="node" data-type="process" data-id="move-publish"
+           data-tip="Claude checks for entries where <strong>proceed-to-publish = Y</strong>, moves each approved file from /3_Draft/ to /4_Publish/, and removes the processed entry from the gate table.">
+        <span class="step-badge">8</span>
+        <span class="icon">📂</span>
+        <div class="label">Move to 4_Publish</div>
+        <div class="subtitle">Move approved files, clean gate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-arrow">▼</div>
+
+  <!-- ═══════ STAGE 5: PUBLISH ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Stage 5 — Hugo Conversion & Publishing</div>
+    <div class="stage-row">
+      <div class="node" data-type="tool" data-id="hugo-convert"
+           data-tip="Claude invokes the <strong>hugo-markdown</strong> Skill: removes all Obsidian tags (#blog-idea, #blog-draft), converts to Hugo TOML frontmatter (+++ delimiters) with date, title, type='post', draft=false, and tags array. Strips [[wikilinks]], ==highlights==, callouts, and %%comments%%.">
+        <span class="step-badge">9</span>
+        <span class="icon">⚙️</span>
+        <div class="label">Hugo Conversion</div>
+        <div class="subtitle">TOML frontmatter, strip Obsidian syntax</div>
+      </div>
+      <div class="node" data-type="process" data-id="copy-archive"
+           data-tip="The finished Hugo file is copied to <strong>/Blog-Posts/{YYYY}/</strong> as an Obsidian-synced backup archive. This preserves a permanent copy in the vault.">
+        <span class="step-badge">10</span>
+        <span class="icon">🗄️</span>
+        <div class="label">Archive to Blog-Posts</div>
+        <div class="subtitle">Copy to /Blog-Posts/{YYYY}/</div>
+      </div>
+      <div class="node" data-type="tool" data-id="osascript-copy"
+           data-tip="Because Blog-Hugo-CMS/ is a symlink that doesn't resolve inside the Cowork VM, Claude uses <strong>obsidian-osascript</strong> via mcp__Control_your_Mac__osascript to execute a shell copy on the Mac host, placing the file in the Hugo Git repo at <strong>/content/posts/{YYYY}/</strong>.">
+        <span class="step-badge">10</span>
+        <span class="icon">🍎</span>
+        <div class="label">osascript → Hugo Repo</div>
+        <div class="subtitle">Copy to Git repo via Mac host</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage-arrow">▼</div>
+
+  <!-- ═══════ FINAL OUTPUT ═══════ -->
+  <div class="stage">
+    <div class="stage-label">Final — Deployment</div>
+    <div class="stage-row">
+      <div class="node" data-type="process" data-id="cleanup"
+           data-tip="The original file is deleted from /4_Publish/ via osascript. Both the archive copy and Hugo repo copy are verified using osascript ls commands.">
+        <span class="step-badge">10</span>
+        <span class="icon">🧹</span>
+        <div class="label">Cleanup 4_Publish</div>
+        <div class="subtitle">Delete original, verify copies</div>
+      </div>
+      <div class="node" data-type="tool" data-id="git-push"
+           data-tip="A separate step (handled by the <strong>julian-blog-git-publish</strong> Skill or Claude Code) commits and pushes the new post to GitHub, triggering the <strong>GitHub Actions</strong> deploy pipeline.">
+        <span class="step-badge">⚡</span>
+        <span class="icon">🚀</span>
+        <div class="label">Git Commit & Push</div>
+        <div class="subtitle">julian-blog-git-publish Skill</div>
+      </div>
+      <div class="node" data-type="output" data-id="live"
+           data-tip="The GitHub Action builds the Hugo site and deploys it. The post is now live at <strong>https://julianwest.me/blog</strong>.">
+        <span class="step-badge">✓</span>
+        <span class="icon">🌐</span>
+        <div class="label">Live on julianwest.me</div>
+        <div class="subtitle">GitHub Actions → Hugo deploy</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot trigger"></span> Trigger</div>
+  <div class="legend-item"><span class="legend-dot process"></span> Processing</div>
+  <div class="legend-item"><span class="legend-dot tool"></span> Tool / Skill</div>
+  <div class="legend-item"><span class="legend-dot decision"></span> Decision Gate</div>
+  <div class="legend-item"><span class="legend-dot datastore"></span> Gate Table</div>
+  <div class="legend-item"><span class="legend-dot output"></span> Output</div>
+</div>
+
+<div class="footer">Blog Draft Pipeline — Julian West · 10-Step Gate-Controlled Workflow · Click any node for details</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function() {
+  const nodes = document.querySelectorAll('.node');
+  const tooltip = document.getElementById('tooltip');
+  let activeNode = null;
+
+  // Define connections: [sourceId, targetId]
+  const connections = [
+    ['inbox', 'tag-move'],
+    ['tag-move', 'raw-gate'],
+    ['raw-gate', 'julian-iterate'],
+    ['julian-iterate', 'blog-writer'],
+    ['blog-writer', 'julian-iterate'],   // loop back
+    ['julian-iterate', 'review-gate'],
+    ['review-gate', 'julian-review'],
+    ['julian-review', 'move-draft'],
+    ['move-draft', 'draft-gate'],
+    ['draft-gate', 'julian-draft'],
+    ['julian-draft', 'move-publish'],
+    ['move-publish', 'hugo-convert'],
+    ['hugo-convert', 'copy-archive'],
+    ['hugo-convert', 'osascript-copy'],
+    ['copy-archive', 'cleanup'],
+    ['osascript-copy', 'cleanup'],
+    ['cleanup', 'git-push'],
+    ['git-push', 'live']
+  ];
+
+  // Build adjacency for highlighting
+  const adjacency = {};
+  connections.forEach(([s, t]) => {
+    if (!adjacency[s]) adjacency[s] = new Set();
+    if (!adjacency[t]) adjacency[t] = new Set();
+    adjacency[s].add(t);
+    adjacency[t].add(s);
+  });
+
+  // Click a node: highlight it and its neighbors
+  nodes.forEach(node => {
+    node.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = node.dataset.id;
+      if (activeNode === id) {
+        resetHighlight();
+        return;
+      }
+      activeNode = id;
+      const neighbors = adjacency[id] || new Set();
+      nodes.forEach(n => {
+        if (n.dataset.id === id) {
+          n.classList.add('highlighted');
+          n.classList.remove('dimmed');
+        } else if (neighbors.has(n.dataset.id)) {
+          n.classList.remove('dimmed');
+          n.classList.remove('highlighted');
+        } else {
+          n.classList.add('dimmed');
+          n.classList.remove('highlighted');
+        }
+      });
+    });
+
+    // Hover tooltip
+    node.addEventListener('mouseenter', (e) => {
+      const tip = node.dataset.tip;
+      if (!tip) return;
+      tooltip.innerHTML = tip;
+      tooltip.classList.add('visible');
+      positionTooltip(e);
+    });
+    node.addEventListener('mousemove', positionTooltip);
+    node.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+
+  // Click background to reset
+  document.addEventListener('click', () => {
+    resetHighlight();
+  });
+
+  function resetHighlight() {
+    activeNode = null;
+    nodes.forEach(n => {
+      n.classList.remove('dimmed', 'highlighted');
+    });
+  }
+
+  function positionTooltip(e) {
+    let x = e.clientX + 16;
+    let y = e.clientY + 16;
+    const rect = tooltip.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 20) x = e.clientX - rect.width - 16;
+    if (y + rect.height > window.innerHeight - 20) y = e.clientY - rect.height - 16;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+})();
+</script>
+</body>
+</html>
